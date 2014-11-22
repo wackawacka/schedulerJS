@@ -1,0 +1,103 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>Schedule JS Example</title>
+<script type='text/javascript' src='//code.jquery.com/jquery-2.1.0.js'></script>
+
+<script type="text/javascript" src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+<link rel="stylesheet" type="text/css" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+<script type='text/javascript' src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+
+<script type='text/javascript' src="schedulejs/js/moment.min.js"></script>
+<script type='text/javascript' src="schedulejs/js/schedulejs-0.1.js"></script>
+
+
+<style type='text/css'>
+	#resizable {
+		width: 150px;
+		height: 20px;
+		position:absolute;
+	}
+	#resizable h3.handle {
+		float: left;
+		margin: 0px;
+		cursor: pointer;
+	}
+	#resizable p {
+		margin: 0px;
+		font-size:12px;
+	}
+	#resizable .handle {
+		height: 18px;
+		width: 5px;
+		background-color: #eee;
+	}
+
+
+
+	.ui-datepicker-calendar th {font-size:60%;padding-top:5px; padding-bottom:5px;border:1px solid #eee;}
+	.ui-datepicker-calendar td {position:relative;}
+	.ui-datepicker-calendar td.dropTarget {border:1px solid #eee;}
+	.ui-datepicker-calendar td.dropTarget:hover, .drop-hover {background-color:#e7f1fc;}
+</style>
+
+<script type='text/javascript'>
+	$(function() {
+		$(function() {
+			$("#resizable").draggable({
+				revert: "invalid",
+				handle: ".handle"//,
+				//grid:[20, 50]
+			});
+			$( "#resizable" ).resizable({
+				snap:'schedule',
+				grid: 50,
+				handles: 'e'
+			});
+			$('.schedule .dropTarget').droppable({
+				tolerance: "pointer",
+				hoverClass: "drop-hover",
+				drop: function (ev, ui) {
+					$(ui.draggable).detach().css({ top: 0, left: 0 }).appendTo(this);
+				}
+			});
+		});
+	});
+
+	$(function () {
+		$("#schedule").schedule({
+			date: (new Date()),
+			resources: [{
+				name: 'person1'
+			}, {
+				name: 'person2',
+				group: 'group1'
+			}
+			
+			],
+			events: [{
+				name: 'Some event to do',
+				resource: 'person1',
+				start: (new Date("2014-11-21 12:00")),
+				end: (new Date("2014-11-21 15:30"))
+			}
+			]
+		});
+	});
+</script>
+</head>
+<body>
+
+<div class="container" style="margin-top:50px;">
+	<div id="schedule"></div>
+</div>
+
+
+	<div id="resizable" class="ui-widget-content">
+		<h3 class="handle"></h3>
+		<p>Some kind of job</p>
+	</div>
+</body>
+</html>
