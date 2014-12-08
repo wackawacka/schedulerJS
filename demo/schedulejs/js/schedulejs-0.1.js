@@ -134,13 +134,13 @@ var defaults = {
 	defaultEnd: moment().endOf('day'),
 	pixelsPerMinute: 1,
 	resourcesWidth: 200,
-
-	// display
-	aspectRatio: 1.35,
-
+	openIconCss: 'glyphicon glyphicon-plus-sign',
+	closeIconCss: 'glyphicon glyphicon-minus-sign',
+	noChildrenIconCss: 'glyphicon glyphicon-record',
+	
 	// time formats
 	titleFormat: 'dddd, MMMM Do YYYY',
-	timeFormat: 'hh:mm',
+	timeFormat: 'ha',// 'HH:mm',
 
 	// jquery-ui theming
 	dragOpacity: .75,
@@ -218,12 +218,13 @@ function Schedule($el, instanceOptions) {
 	var date;
 	var events = [];
 	var sBarWidth = getScrollbarWidth();
-	// Main Rendering  -----------------------------------------------------------------------------------
 
 
 	date = t.getNow();
 	resources = options.resources != null ? options.resources : [];
+	events = options.events != null ? options.events : [];
 
+	// Main Rendering  -----------------------------------------------------------------------------------
 	function render() {
 		if (!$content) {
 			initialRender();
@@ -239,13 +240,21 @@ function Schedule($el, instanceOptions) {
 		$titlebar = $('<div class="schedule-titlebar" />');
 		$el.prepend($titlebar);
 
-		$resources = $('<div class="schedule-resources-container" />').css({'float':'left', 'width': options.resourcesWidth});
+		$resources = $('<div class="schedule-resources-container" />').css({'float':'left', width: options.resourcesWidth}).resizable({
+			handles: 'e',
+			resize: function (event, ui) {
+				$contentView.width($el.width() - $resources.width());
+			}
+		});;
 		$el.append($resources)
 
-		$contentView = $('<div class="schedule-content-container" />');
+		$contentView = $('<div class="schedule-content-container" />').mousewheel(function (e, delta) {
+			this.scrollLeft -= (delta * 40);
+			e.preventDefault();
+		});
 		$el.append($contentView)
 
-		$header = $('<div class="schedule-content-header" />');
+		$header = $('<div class="schedule-content-header" />').css({ overflow: 'hidden' });
 		$contentView.append($header);
 
 		$content = $('<div class="schedule-content-items-container" />');
@@ -283,6 +292,7 @@ function Schedule($el, instanceOptions) {
 		renderHeader();
 		renderContent();
 
+		renderEvents();
 		unfreezeContentHeight(); // undo any lone freezeContentHeight calls
 
 	}
@@ -290,53 +300,122 @@ function Schedule($el, instanceOptions) {
 	function renderHeader() {
 		var duration = moment.duration(t.getEnd().diff(t.getStart()));
 		var minutes = duration.asMinutes();
-		var totalSections = minutes / options.timeIntervalMins;
+		var totalSections = minutes / 60;
 
-		var $tmpContainer = $('<div />').css({'position': 'relative', width: minutes*options.pixelsPerMinute});
+		var $timeContainer = $('<div />').css({ position: 'relative', width: minutes * options.pixelsPerMinute });
+		var $halfTimeContainer = $('<div />').css({ position: 'relative', width: minutes * options.pixelsPerMinute });
 		var iTime = t.getStart();
 		for (var i = 0; i < totalSections; i++) {
-			iTime.add(options.timeIntervalMins, 'm');
-			$tmpContainer.append($('<div class="schedule-heading-time" />').text(iTime.format(options.timeFormat)).css({ 'float': 'left', width: (options.pixelsPerMinute * options.timeIntervalMins) }));
+			$timeContainer.append($('<div class="schedule-heading-time" />').text(iTime.format(options.timeFormat)).css({ 'float': 'left', width: (options.pixelsPerMinute * 60) }));
+			iTime.add(60, 'm');
+		}
+		for (var i = 0; i < totalSections*2; i++) {
+			iTime.add(30, 'm');
+			$halfTimeContainer.append($('<div class="schedule-heading-half-time" />').css({ 'float': 'left', width: (options.pixelsPerMinute * 30) }));
 		}
 		$contentView.css({'float': 'left', width: $el.width()-$resources.width(), 'overflow-x': 'auto'});
-		$header.append($tmpContainer);
-	}
+		$header.append($timeContainer);
+		$header.append($halfTimeContainer);
+		$header.width(minutes * options.pixelsPerMinute);
 
+		$('.schedule-resource-header').height($header.innerHeight() - 1);
+	}
 	function renderResources() {
-		var $tmpContainer = $('<div />');
-		$tmpContainer.append($('<div class="schedule-resource-item">&nbsp;</div>'));
-		for (var i = 0; i < resources.length; i++) {
-			$tmpContainer.append($('<div class="schedule-resource-item" />').text(resources[i].name));
-		}
-		$resources.html($tmpContainer.html());
-		$contentView.css({height: $resources.height()+sBarWidth});
-	}
+		var $resContainer = $('<ul class="list-unstyled" />');
+		$resContainer.append($('<li><div class="schedule-resource-header"></div></li>'));
+		renderChildResources($resContainer, resources, 0);
+		$resources.append($resContainer);
 
+		function renderChildResources($parent, resourceArray, levelDeep) {
+			for (var i = 0; i < resourceArray.length; i++) {
+				var resource = resourceArray[i];
+				var $resContainer = $('<li><div class="schedule-resource-item"></div></li>');
+				$resContainer.data('resource', resource);
+				$resContainer.attr('resourceid', resource.id);
+				var $resItem = $resContainer.children('div');
+
+				if (resource.children && resource.children.length > 0) {
+					var $opener = $('<i class="' + (!!resource.openIconCss ? resource.openIconCss : options.openIconCss) + '" />');
+					$opener.click(function () {
+						var $thisContainer = $(this).parent().parent();
+						var resource = $thisContainer.data('resource');
+						if ($thisContainer.children('ul').is(':visible')) {
+							$thisContainer.children('ul').slideUp();
+							$(this).removeClass((!!resource.openIconCss ? resource.openIconCss : options.openIconCss))
+							$(this).addClass((!!resource.closeIconCss ? resource.closeIconCss : options.closeIconCss))
+						} else {
+							$thisContainer.children('ul').slideDown();
+							$(this).removeClass((!!resource.closeIconCss ? resource.closeIconCss : options.closeIconCss))
+							$(this).addClass((!!resource.openIconCss ? resource.openIconCss : options.openIconCss))
+						}
+					});
+					$resItem.append($opener);
+				} else {
+					var $opener = $('<i class="' + (!!resource.noChildrenIconCss ? resource.noChildrenIconCss : options.noChildrenIconCss) + '" />');
+					$resItem.append($opener);
+				}
+				$resItem.append($('<span />').text(resourceArray[i].name).css({ paddingLeft: 5 })).append($('<hr />').css({ margin: 0 }));
+				$parent.append($resContainer);
+
+				if (resourceArray[i].children && resourceArray[i].children.length > 0) {
+					$subContainer = $('<ul class="list-unstyled" />');
+					renderChildResources($subContainer, resourceArray[i].children, levelDeep + 1);
+					$resContainer.append($subContainer);
+				}
+			}
+		}
+	}
 	function renderContent() {
 		var duration = moment.duration(t.getEnd().diff(t.getStart()));
 		var minutes = duration.asMinutes();
 		var totalSections = minutes / options.timeIntervalMins;
 
 		var $tmpContainer = $('<div />').css({width: minutes*options.pixelsPerMinute});
-		var iTime = t.getStart();
-		for (var r = 0; r < resources.length; r++) {
-			var $newRow = $('<div class="alt" />');
-			for (var i = 0; i < totalSections; i++) {
-				iTime.add(options.timeIntervalMins, 'm');
-				$newRow.append($('<div class="schedule-content-item dropTarget" />').css({
-					'float': 'left',
-					'position': 'relative',
-					width: (options.pixelsPerMinute * options.timeIntervalMins),
-					height: $('.schedule-resource-item').height()
-				}));
-			}
-			$tmpContainer.append($newRow);
-		}
-
+		renderChildResourceContent(resources, 0);
 		$content.append($tmpContainer);
+
+		function renderChildResourceContent(resourceArray, levelDeep) {
+			for (var r = 0; r < resourceArray.length; r++) {
+				var iTime = t.getStart();
+				var $newRow = $('<div />').data('resource', resourceArray[i]).attr('resourceid', resourceArray[r].id);
+				for (var i = 0; i < totalSections; i++) {
+					$newContentEl = $('<div class="schedule-content-item dropTarget" />').css({
+						'float': 'left',
+						position: 'relative',
+						width: (options.pixelsPerMinute * options.timeIntervalMins),
+						height: $('.schedule-resources-container li[resourceid=' + resourceArray[r].id + '] > div').innerHeight()
+					}).attr('datetime', iTime.toISOString());
+					$newRow.append($newContentEl);
+					iTime.add(options.timeIntervalMins, 'm');
+				}
+				$tmpContainer.append($newRow);
+
+				if (resourceArray[r].children && resourceArray[r].children.length > 0)
+					renderChildResourceContent(resourceArray[r].children, levelDeep + 1);
+			}
+		}
 	}
+	function renderEvents() {
+		for (i = 0; i < events.length; i++) {
+			if (!moment.isMoment(events[i].start)) events[i].start = moment(events[i].start);
+			if (!moment.isMoment(events[i].end)) events[i].end = moment(events[i].end);
+			
+			if (events[i].start.clone().startOf('day').toISOString() != date.startOf('day').toISOString()) continue;
 
-
+			var $event = $('<div class="event" data-toggle="popover" data-trigger="focus"><div class="schedule-event-time-container"><div class="schedule-event-time-indicator"></div></div></div>').append(events[i].name);
+			$event.attr('title', events[i].name);
+			$event.attr('data-content', events[i].description);
+			$event.draggable({
+				revert: "invalid",
+				scroll: true,
+				cursorAt: {left:10}
+			});
+			var time = moment.roundMoment(events[i].start, 'minute', options.timeIntervalMins, 'down', true);
+			$nearestEl = $content.find('div[resourceid=' + events[i].resourceid + ']').children('div[datetime="' + time.toISOString() + '"]');
+			$nearestEl.append($event);
+		}
+	}
+	
 
 	/* Event Fetching/Rendering
 	-----------------------------------------------------------------------------*/
@@ -346,16 +425,6 @@ function Schedule($el, instanceOptions) {
 	function refetchEvents() { // can be called as an API method
 		destroyEvents(); // so that events are cleared before user starts waiting for AJAX
 		fetchAndRenderEvents();
-	}
-
-
-	function renderEvents() { // destroys old events if previously rendered
-		if (elementVisible()) {
-			freezeContentHeight();
-			currentView.destroyEvents(); // no performance cost if never rendered
-			currentView.renderEvents(events);
-			unfreezeContentHeight();
-		}
 	}
 
 
@@ -508,6 +577,55 @@ function Schedule($el, instanceOptions) {
 	}
 }
 
+moment.roundMoment = function (m, unit, offset, midpoint, clone) {
+	unit = moment.normalizeUnits(unit);
+
+	if (unit.toLowerCase() == 'day')
+		unit = 'date';
+
+	offset = offset || 1;
+	var value = m.get(unit);
+
+	switch (midpoint) {
+		case 'up':
+			value = Math.ceil(value / offset);
+			break;
+		case 'down':
+			value = Math.floor(value / offset);
+			break;
+		case 'nearest':
+		default:
+			value = Math.round(value / offset);
+			break;
+	}
+	var ret = clone ? m.clone() : m;
+	ret = ret.set(unit, value * offset);
+
+	switch (unit) {
+		case 'year':
+			ret.month(0);
+			/* falls through */
+		case 'month':
+			ret.date(1);
+			/* falls through */
+		case 'date':
+			ret.hours(0);
+			/* falls through */
+		case 'hour':
+			ret.minutes(0);
+			/* falls through */
+		case 'minute':
+			ret.seconds(0);
+			/* falls through */
+		case 'second':
+			ret.milliseconds(0);
+			/* falls through */
+	}
+	return ret;
+}
+moment.fn.roundTo = function (unit, offset, midpoint) {
+	return moment.roundMoment(this, unit, offset, midpoint, false);
+};
 
 
 function debounce(func, wait) {

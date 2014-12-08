@@ -2,16 +2,19 @@
 <html>
 <head>
 <title>Schedule JS Example</title>
-<script type='text/javascript' src='//code.jquery.com/jquery-2.1.0.js'></script>
+<script src='//code.jquery.com/jquery-2.1.0.js'></script>
 
-<script type="text/javascript" src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 
-<link rel="stylesheet" type="text/css" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
-<script type='text/javascript' src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+<script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
 
-<script type='text/javascript' src="schedulejs/js/moment.min.js"></script>
-<script type='text/javascript' src="schedulejs/js/schedulejs-0.1.js"></script>
+<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+
+<script src="schedulejs/js/moment.min.js"></script>
+<script src="schedulejs/js/schedulejs-0.1.js"></script>
+<script src="schedulejs/js/jquery.mousewheel.js"></script>
 
 
 <style type='text/css'>
@@ -20,36 +23,117 @@
 		height: 20px;
 		z-index:65000;
 		cursor: pointer;
+		border-right:1px solid #ccc;
+		border-left: 1px solid #ccc;
+		border-bottom: 1px solid #ccc;
+		font-size:12px;
+		background:#fff;
+		overflow:hidden;
 	}
-	#resizable p {
-		margin: 0px;
+		.event .schedule-event-time-container {
+			height:3px;
+			background:#82abff;
+		}
+		.event .schedule-event-time-indicator {
+			height:3px;
+			background:#0036b7;
+			margin-left:20px;
+			margin-right:30px;
+		}
+
+	.ui-resizable-e {
+		background:#fff;
+		border:1px solid #eee;
+	}
+	.schedule .schedule-titlebar {
+		text-align:center;
+		font-size:16px;
+	}
+	.schedule-heading-time {
+		border-left:1px solid #ccc;
+		text-align:center;
 		font-size:12px;
 	}
-
-
-	.schedule .schedule-titlebar { text-align:center; }
-	.ui-datepicker-calendar th {font-size:60%;padding-top:5px; padding-bottom:5px;border:1px solid #eee;}
-	.ui-datepicker-calendar td {position:relative;}
-	.ui-datepicker-calendar td.dropTarget {border:1px solid #eee;}
-	.ui-datepicker-calendar td.dropTarget:hover, .drop-hover {background-color:#e7f1fc;}
+	.schedule-heading-half-time {
+		border-left:1px solid #ccc;
+		border-bottom:1px solid #ccc;
+		height:5px;
+	}
+	.schedule-resources-container ul ul {
+		padding-left:15px;
+	}
+	.schedule-resource-header {
+		border-bottom:1px solid #ccc;
+	}
+	.schedule-resource-item {
+		padding:5px 5px 0px 5px;
+		cursor:pointer;
+	}
+	.schedule-content-item {
+		border-left:1px solid #eee;
+		border-bottom:1px solid #eee;
+	}
+	.drop-hover {background-color:#e7f1fc;}
 </style>
 
 <script type='text/javascript'>
 	$(function () {
 		$("#schedule").scheduler({
+			timeIntervalMins:30,
+			defaultStart: moment().startOf('day'),
+			defaultEnd: moment().endOf('day'),
+			openIconCss: 'fa fa-plus-square-o',
+			closeIconCss: 'fa fa-minus-square-o',
+			noChildrenIconCss: 'fa fa-square-o',
 			resources: [{
-				name: 'person1'
+				id: 1,
+				name: 'employees',
+				children: [{
+					id: 2,
+					name: 'Alan'
+				}, {
+					id: 3,
+					name: 'Dave'
+				}, {
+					id: 4,
+					name: 'Mike'
+				}, {
+					id: 9,
+					name: 'Simon',
+					noChildrenIconCss: 'fa fa-trophy'
+				}, {
+					id: 10,
+					name: 'Carl'
+				}, {
+					id: 11,
+					name: 'Joe'
+				}, {
+					id: 12,
+					name: 'Scott'
+				}]
 			}, {
-				name: 'person2',
-				group: 'group1'
-			}
-
-			],
+				id: 5,
+				name: 'contractors',
+				openIconCss: 'fa fa-users',
+				closeIconCss: 'fa fa-minus-square-o',
+				noChildrenIconCss: 'fa fa-square-o',
+				children: [{
+					id: 6,
+					name: 'person1'
+				}, {
+					id: 7,
+					name: 'person2'
+				}, {
+					id: 8,
+					name: 'person3'
+				}]
+			}],
 			events: [{
 				name: 'Some event to do',
-				resource: 'person1',
-				start: (new Date("2014-11-21 12:00")),
-				end: (new Date("2014-11-21 15:30"))
+				description: 'Some event to do',
+				resourceid: 2,
+				start: (new Date("2014-12-08 12:00")),
+				end: (new Date("2014-12-08 13:30"))
 			}]
 		});
 	});
@@ -62,8 +146,8 @@
 			});
 			$("#unscheduled-events .event").resizable({
 				snap:'schedule',
-				grid: 60,
-				handles: 'e'
+				grid: 30,
+				handles: 'e, w'
 			});
 			$('.schedule .dropTarget').droppable({
 				tolerance: "pointer",
@@ -79,12 +163,12 @@
 </head>
 <body>
 
-<div class="container" style="margin-top:50px;">
+<div style="margin:50px auto; width:90%;">
 	<div id="unscheduled-events">
 		<div class="panel panel-default">
 			<div class="panel-heading">Un-scheduled Events</div>
 			<div class="panel-body">
-				<div class="event badge">Some kind of job</div>
+				<div class="event"><div class="schedule-event-time-container"><div class="schedule-event-time-indicator"></div></div>Some kind of job</div>
 			</div>
 		</div>
 	</div>
