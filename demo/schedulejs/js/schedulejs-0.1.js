@@ -402,13 +402,24 @@ function Schedule($el, instanceOptions) {
 			
 			if (events[i].start.clone().startOf('day').toISOString() != date.startOf('day').toISOString()) continue;
 
-			var $event = $('<div class="event" data-toggle="popover" data-trigger="focus"><div class="schedule-event-time-container"><div class="schedule-event-time-indicator"></div></div></div>').append(events[i].name);
-			$event.attr('title', events[i].name);
-			$event.attr('data-content', events[i].description);
+			var $event = $('<div class="event" data-toggle="popover" data-trigger="click"><div class="schedule-event-time-container"><div class="schedule-event-time-indicator"></div></div></div>').append(events[i].name);
 			$event.draggable({
 				revert: "invalid",
 				scroll: true,
-				cursorAt: {left:10}
+				cursorAt: { left: 10 },
+				stop: function (event, ui) {
+					// event.toElement is the element that was responsible
+					// for triggering this event. The handle, in case of a draggable.
+					$(event.toElement).one('click', function (e) { e.stopImmediatePropagation(); });
+				}
+			});
+			$event.popover({
+				animation: false,
+				html: true,
+				placement: 'left',
+				title:  events[i].name,
+				content: events[i].description,
+				container: 'body'
 			});
 			var time = moment.roundMoment(events[i].start, 'minute', options.timeIntervalMins, 'down', true);
 			$nearestEl = $content.find('div[resourceid=' + events[i].resourceid + ']').children('div[datetime="' + time.toISOString() + '"]');

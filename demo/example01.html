@@ -74,6 +74,11 @@
 		border-bottom:1px solid #eee;
 	}
 	.drop-hover {background-color:#e7f1fc;}
+
+
+	.popover-content h4 {
+		margin:0px;
+	}
 </style>
 
 <script type='text/javascript'>
@@ -130,7 +135,7 @@
 			}],
 			events: [{
 				name: 'Some event to do',
-				description: 'Some event to do',
+				description: '<b>Customer ABC</b><p>Some job details and alerts about this job... and maybe some latest updates</p><address>some address,<br />road,<br />town, <br />post code</address><a href="#">a link to the job</a>',
 				resourceid: 2,
 				start: (new Date("2014-12-08 12:00")),
 				end: (new Date("2014-12-08 13:30"))
