@@ -2,88 +2,39 @@
 <html>
 <head>
 <title>Schedule JS Example</title>
+
+<!--jQuery - Required-->
 <script src='//code.jquery.com/jquery-2.1.0.js'></script>
 
+<!--bootstrap - only needed if you want to use the nice bootstrap styles/themes-->
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
 
-<link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
-<script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
-
+<!--font awesome - totally not required - only needed if you want to use the nice fa-icons-->
 <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
 
-<script src="schedulejs/js/moment.min.js"></script>
-<script src="schedulejs/js/schedulejs-0.1.js"></script>
-<script src="schedulejs/js/jquery.mousewheel.js"></script>
+<!--moment - Required works out all the timings and time formatting-->
+<script src="schedulerjs/js/moment.min.js"></script>
 
+<!--jQuery mousewheel - optional, adding this file allows you to scroll the event window horizontally -->
+<script src="schedulerjs/js/jquery.mousewheel.js"></script>
 
-<style type='text/css'>
-	.event {
-		width: 120px;
-		height: 20px;
-		z-index:65000;
-		cursor: pointer;
-		border-right:1px solid #ccc;
-		border-left: 1px solid #ccc;
-		border-bottom: 1px solid #ccc;
-		font-size:12px;
-		background:#fff;
-		overflow:hidden;
-	}
-		.event .schedule-event-time-container {
-			height:3px;
-			background:#82abff;
-		}
-		.event .schedule-event-time-indicator {
-			height:3px;
-			background:#0036b7;
-			margin-left:20px;
-			margin-right:30px;
-		}
+<!--jQuery UI - Required for drag-drop and resizing of events and also resizing the resource/event section. the customization I have here is that I only selected drag/drop/resize libs in the jquery.ui download section. -->
+<script src="schedulerjs/js/jquery-ui-1.11.2.custom/jquery-ui.min.js"></script>
+<!--jQuery UI structure css - Required for resize bar layout, I may add jquery UI classes to the various components at some point, if anyone requests it... in which case you would have to add the relevant ui theme css file as well -->
+<link href="schedulerjs/js/jquery-ui-1.11.2.custom/jquery-ui.structure.min.css" rel="stylesheet" />
 
-	.ui-resizable-e {
-		background:#fff;
-		border:1px solid #eee;
-	}
-	.schedule .schedule-titlebar {
-		text-align:center;
-		font-size:16px;
-	}
-	.schedule-heading-time {
-		border-left:1px solid #ccc;
-		text-align:center;
-		font-size:12px;
-	}
-	.schedule-heading-half-time {
-		border-left:1px solid #ccc;
-		border-bottom:1px solid #ccc;
-		height:5px;
-	}
-	.schedule-resources-container ul ul {
-		padding-left:15px;
-	}
-	.schedule-resource-header {
-		border-bottom:1px solid #ccc;
-	}
-	.schedule-resource-item {
-		padding:5px 5px 0px 5px;
-		cursor:pointer;
-	}
-	.schedule-content-item {
-		border-left:1px solid #eee;
-		border-bottom:1px solid #eee;
-	}
-	.drop-hover {background-color:#e7f1fc;}
+<!--Required ...Duh -->
+<script src="schedulerjs/js/schedulerjs-0.1.js"></script>
+<!--Required - you need at least the layout css -->
+<link href="schedulerjs/css/layout.css" rel="stylesheet" />
+<!--optional theme -->
+<link href="schedulerjs/css/light.css" rel="stylesheet" />
 
-
-	.popover-content h4 {
-		margin:0px;
-	}
-</style>
 
 <script type='text/javascript'>
 	$(function () {
-		$("#schedule").scheduler({
+		$("#scheduler").scheduler({
 			timeIntervalMins:30,
 			defaultStart: moment().startOf('day'),
 			defaultEnd: moment().endOf('day'),
@@ -115,30 +66,39 @@
 				}, {
 					id: 12,
 					name: 'Scott'
-				}]
-			}, {
-				id: 5,
-				name: 'contractors',
-				openIconCss: 'fa fa-users',
-				closeIconCss: 'fa fa-minus-square-o',
-				noChildrenIconCss: 'fa fa-square-o',
-				children: [{
-					id: 6,
-					name: 'person1'
 				}, {
-					id: 7,
-					name: 'person2'
-				}, {
-					id: 8,
-					name: 'person3'
+					id: 5,
+					name: 'contractors',
+					openIconCss: 'fa fa-users',
+					closeIconCss: 'fa fa-minus-square-o',
+					noChildrenIconCss: 'fa fa-square-o',
+					children: [{
+						id: 6,
+						name: 'person1'
+					}, {
+						id: 7,
+						name: 'person2'
+					}, {
+						id: 8,
+						name: 'person3'
+					}]
 				}]
 			}],
 			events: [{
 				name: 'Some event to do',
 				description: '<b>Customer ABC</b><p>Some job details and alerts about this job... and maybe some latest updates</p><address>some address,<br />road,<br />town, <br />post code</address><a href="#">a link to the job</a>',
 				resourceid: 2,
-				start: (new Date("2014-12-08 12:00")),
-				end: (new Date("2014-12-08 13:30"))
+				start: (new moment()).startOf('day').add(12, 'hour'),
+				end: (new moment()).startOf('day').add(13, 'hour').add(30, 'minute')
+			}, {
+				name: 'An event with start or end time',
+				description: '<b>Customer ABC</b><p>Some job details and alerts about this job... and maybe some latest updates</p><address>some address,<br />road,<br />town, <br />post code</address><a href="#">a link to the job</a>',
+				resourceid: 2
+			}],
+			unscheduledHolder: '#unscheduled-events .panel-body',
+			unscheduledEvents: [{
+				name: 'An unscheduled event',
+				description: '<b>Customer ABC</b><p>Some job details and alerts about this job... and maybe some latest updates</p><address>some address,<br />road,<br />town, <br />post code</address><a href="#">a link to the job</a>'
 			}]
 		});
 	});
@@ -154,13 +114,7 @@
 				grid: 30,
 				handles: 'e, w'
 			});
-			$('.schedule .dropTarget').droppable({
-				tolerance: "pointer",
-				hoverClass: "drop-hover",
-				drop: function (ev, ui) {
-					$(ui.draggable).detach().css({ position: 'absolute', top: 0, left: 0 }).appendTo(this);
-				}
-			});
+			
 		});
 	});
 
@@ -168,17 +122,21 @@
 </head>
 <body>
 
-<div style="margin:50px auto; width:90%;">
-	<div id="unscheduled-events">
-		<div class="panel panel-default">
-			<div class="panel-heading">Un-scheduled Events</div>
-			<div class="panel-body">
-				<div class="event"><div class="schedule-event-time-container"><div class="schedule-event-time-indicator"></div></div>Some kind of job</div>
+	<div class="container-fluid">
+	<h1 class="text-center">SchedulerJS <small>Example</small></h1>
+	</div>
+
+	<div class="container-fluid">
+		<div id="unscheduled-events" class="col-sm-3">
+			<div class="panel panel-default">
+				<div class="panel-heading">Un-scheduled Events</div>
+				<div class="panel-body"></div>
 			</div>
 		</div>
+		<div class="col-sm-9">
+			<div id="scheduler"></div>
+		</div>
 	</div>
-	<div id="schedule"></div>
-</div>
 
 </body>
 </html>

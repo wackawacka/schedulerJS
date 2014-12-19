@@ -1,77 +1,7 @@
 ﻿
 if (typeof jQuery === 'undefined') {
-	throw new Error('ScheduleJS requires jQuery');
+	throw new Error('SchedulerJS requires jQuery');
 }
-
-
-//$.fn.schedule = function (options) {
-
-//	var $this = this;
-//	//<defaults>
-//	var events = [];
-//	var resources = [];
-//	var currentDate = moment();
-//	var timeIntervalMins = 60;
-//	var topBarDateFormat = 'dddd, MMMM Do YYYY';
-//	//</defaults>
-
-//	if (options.events) events = options.events;
-//	if (options.resources) resources = options.resources;
-//	if (options.date) currentDate = moment(options.date);
-//	if (options.timeIntervalMins) timeIntervalMins = options.timeIntervalMins;
-//	if (options.topBarDateFormat) topBarDateFormat = options.topBarDateFormat;
-
-//	if (!currentDate.isValid()) console.log("schedule: invalid 'date' option, try an ISO standard string.");
-//	if (isNaN(timeIntervalMins)) console.log("schedule: invalid 'timeIntervalMins' option, this must be a number. The default is 60, this means each drop target is 60 minutes.")
-
-//	if ($this.data('schedule-initiated')) return;
-//	$this.data('schedule-initiated', true);
-
-//	$this.addClass('schedule');
-
-//	$this.render = function (date) {
-//		var dayStart = moment(date.startOf('day'));
-//		var dayEnd = moment(date.endOf('day'));
-//		var finalEl = $('<div class="date-bar">' + date.format(topBarDateFormat) + '</div>');
-//		var headerHTML = '';
-
-//		var timeIntervalMins = 60;
-//		var iTime = moment(dayStart);//must create a new instance of moment so we can adjust it and reset it later.
-
-//		finalHtml += '<div class="resource-header"></div>';
-//		while (iTime.isBefore(dayEnd)) {
-//			iTime.add(timeIntervalMins, 'm');
-//			finalHtml += '<div class="time-header">' + iTime.format('hh:mm') + '</div>';
-//		}
-
-//		for (var i = 0; i < resources.length; i++) {
-//			finalHtml += '<div class="resource-name">' + resources[i].name + '</div>';
-
-//			iTime = moment(dayStart);
-//			while (iTime.isBefore(dayEnd)) {
-//				iTime.add(timeIntervalMins, 'm');
-//				finalHtml += '<td class="dropTarget"></td>';
-//			}
-
-//			finalHtml += '</tr>';
-//		}
-
-//		finalHtml += '</table>';
-
-//		$(events).each(function (i, evt) {
-			
-//		});
-
-//		$this.html(finalHtml);
-//	}
-
-//	$this.render(currentDate);
-
-//	return $this;
-
-//}
-
-
 
 var s = $.scheduler = { version: 0.1 };
 
@@ -80,24 +10,22 @@ $.fn.scheduler = function (options) {
 
 	this.each(function (i, el) { // loop each DOM element involved
 		var $el = $(el);
-		var schedule = $el.data('scheduler'); // get the existing calendar object (if any)
+		var scheduler = $el.data('scheduler'); // get the existing sceduler object (if any)
 
-		if (!schedule) { // don't initialize twice
-			schedule = new Schedule($el, options);
-			$el.data('scheduler', schedule);
-			schedule.render();
+		if (!scheduler) { // don't initialize twice
+			scheduler = new Scheduler($el, options);
+			$el.data('scheduler', scheduler);
+			scheduler.render();
 		}
 	});
 
 	return res;
 };
 
-// function for adding/overriding defaults
 function setDefaults(d) {
 	mergeOptions(defaults, d);
 }
 
-// Recursively combines option hash-objects.
 function mergeOptions(target) {
 
 	function mergeIntoTarget(name, value) {
@@ -124,10 +52,9 @@ function isForcedAtomicOption(name) {
 	return /(Time|Duration)$/.test(name);
 }
 
-
 var defaults = {
 
-	timeIntervalMins: 60,//time between each drop target (so 30 will allow events to be dropped at 3:30)
+	timeIntervalMins: 60,//time between each drop target (so 30 will allow events to be dropped at 0:00, 0:30, 1:00, 1:30, etc, etc)
 	defaultEventDurationMins: 120,
 	now: moment().startOf('day').add(12, 'h'),
 	defaultStart: moment().startOf('day'),
@@ -160,7 +87,7 @@ var defaults = {
 };
 
 
-function Schedule($el, instanceOptions) {
+function Scheduler($el, instanceOptions) {
 	var t = this;
 
 	instanceOptions = instanceOptions || {};
@@ -216,13 +143,23 @@ function Schedule($el, instanceOptions) {
 	var _element = $el[0];
 	var $titlebar, $header, $resources, $content;
 	var date;
-	var events = [];
+	var events = [], unscheduledEvents = [];
 	var sBarWidth = getScrollbarWidth();
 
 
 	date = t.getNow();
 	resources = options.resources != null ? options.resources : [];
 	events = options.events != null ? options.events : [];
+	unscheduledEvents = options.unscheduledEvents != null ? options.unscheduledEvents : [];
+
+	for (var ev = 0; ev < events.length; ev++) {
+		var removed = false;
+		if (!events[ev].start || !events[ev].end)
+			removed = events.splice(ev--, 1);
+		if (removed)
+			unscheduledEvents.push(removed[0]);
+
+	}
 
 	// Main Rendering  -----------------------------------------------------------------------------------
 	function render() {
@@ -235,29 +172,29 @@ function Schedule($el, instanceOptions) {
 		}
 	}
 	function initialRender() {
-		$el.addClass('schedule');
+		$el.addClass('scheduler');
 
-		$titlebar = $('<div class="schedule-titlebar" />');
+		$titlebar = $('<div class="scheduler-titlebar" />');
 		$el.prepend($titlebar);
 
-		$resources = $('<div class="schedule-resources-container" />').css({'float':'left', width: options.resourcesWidth}).resizable({
+		$resources = $('<div class="scheduler-resources-container" />').css({'float':'left', width: options.resourcesWidth}).resizable({
 			handles: 'e',
 			resize: function (event, ui) {
-				$contentView.width($el.width() - $resources.width());
+				$contentView.width($el.width() - $resources.width() - 1);
 			}
 		});;
 		$el.append($resources)
 
-		$contentView = $('<div class="schedule-content-container" />').mousewheel(function (e, delta) {
+		$contentView = $('<div class="scheduler-content-container" />').mousewheel(function (e, delta) {
 			this.scrollLeft -= (delta * 40);
 			e.preventDefault();
 		});
 		$el.append($contentView)
 
-		$header = $('<div class="schedule-content-header" />').css({ overflow: 'hidden' });
+		$header = $('<div class="scheduler-content-header" />').css({ overflow: 'hidden' });
 		$contentView.append($header);
 
-		$content = $('<div class="schedule-content-items-container" />');
+		$content = $('<div class="scheduler-content-items-container" />');
 		$contentView.append($content);
 
 
@@ -273,7 +210,7 @@ function Schedule($el, instanceOptions) {
 		$header.remove();
 		$resources.remove();
 		$content.remove();
-		$el.removeClass('schedule');
+		$el.removeClass('scheduler');
 
 		$(window).unbind('resize', windowResizeProxy);
 	}
@@ -288,12 +225,31 @@ function Schedule($el, instanceOptions) {
 
 		$titlebar.text(date.format(options.titleFormat));
 
-		renderResources();
 		renderHeader();
+		renderResources();
 		renderContent();
 
 		renderEvents();
 		unfreezeContentHeight(); // undo any lone freezeContentHeight calls
+
+		adjustSizes();
+
+		$('.scheduler .dropTarget').droppable({
+			tolerance: "pointer",
+			hoverClass: "drop-hover",
+			drop: function (ev, ui) {
+				var event = ui.draggable.data('event');
+				if (!event.start || !event.end) {
+					event.start = new moment($(this).attr('datetime'));
+					event.end = event.start.clone().add(options.defaultEventDurationMins, 'minute');
+				}
+				ui.draggable.draggable('destroy').resizable('destroy').popover('destroy').remove();
+				$(this).append(createEventEl(event, moment.duration(event.end.diff(event.start)).asMinutes()));
+				//$(ui.draggable).detach().css({ position: 'absolute', top: 0, left: 0 }).appendTo(this);
+				//ui.draggable.draggable();
+				//activateEventUI(ui.draggable);
+			}
+		});
 
 	}
 
@@ -306,61 +262,63 @@ function Schedule($el, instanceOptions) {
 		var $halfTimeContainer = $('<div />').css({ position: 'relative', width: minutes * options.pixelsPerMinute });
 		var iTime = t.getStart();
 		for (var i = 0; i < totalSections; i++) {
-			$timeContainer.append($('<div class="schedule-heading-time" />').text(iTime.format(options.timeFormat)).css({ 'float': 'left', width: (options.pixelsPerMinute * 60) }));
+			$timeContainer.append($('<div class="scheduler-heading-time" />').text(iTime.format(options.timeFormat)).css({ 'float': 'left', width: (options.pixelsPerMinute * 60) }));
 			iTime.add(60, 'm');
 		}
 		for (var i = 0; i < totalSections*2; i++) {
 			iTime.add(30, 'm');
-			$halfTimeContainer.append($('<div class="schedule-heading-half-time" />').css({ 'float': 'left', width: (options.pixelsPerMinute * 30) }));
+			$halfTimeContainer.append($('<div class="scheduler-heading-half-time" />').css({ 'float': 'left', width: (options.pixelsPerMinute * 30) }));
 		}
-		$contentView.css({'float': 'left', width: $el.width()-$resources.width(), 'overflow-x': 'auto'});
 		$header.append($timeContainer);
 		$header.append($halfTimeContainer);
 		$header.width(minutes * options.pixelsPerMinute);
 
-		$('.schedule-resource-header').height($header.innerHeight() - 1);
 	}
 	function renderResources() {
 		var $resContainer = $('<ul class="list-unstyled" />');
-		$resContainer.append($('<li><div class="schedule-resource-header"></div></li>'));
-		renderChildResources($resContainer, resources, 0);
+		$resContainer.append($('<li><div class="scheduler-resource-header"></div></li>'));
+		renderChildResources($resContainer, resources);
 		$resources.append($resContainer);
 
-		function renderChildResources($parent, resourceArray, levelDeep) {
+		function renderChildResources($parent, resourceArray) {
 			for (var i = 0; i < resourceArray.length; i++) {
 				var resource = resourceArray[i];
-				var $resContainer = $('<li><div class="schedule-resource-item"></div></li>');
-				$resContainer.data('resource', resource);
-				$resContainer.attr('resourceid', resource.id);
-				var $resItem = $resContainer.children('div');
+				var $resItemContainer = $('<li><div class="scheduler-resource-item"></div></li>');
+				$resItemContainer.data('resource', resource);
+				$resItemContainer.attr('resourceid', resource.id);
+				var $resItem = $resItemContainer.children('div');
 
 				if (resource.children && resource.children.length > 0) {
 					var $opener = $('<i class="' + (!!resource.openIconCss ? resource.openIconCss : options.openIconCss) + '" />');
-					$opener.click(function () {
-						var $thisContainer = $(this).parent().parent();
+					$resItem.data('opener', $opener);
+					$resItem.click(function () {
+						var $thisContainer = $(this).parent();
 						var resource = $thisContainer.data('resource');
 						if ($thisContainer.children('ul').is(':visible')) {
 							$thisContainer.children('ul').slideUp();
-							$(this).removeClass((!!resource.openIconCss ? resource.openIconCss : options.openIconCss))
-							$(this).addClass((!!resource.closeIconCss ? resource.closeIconCss : options.closeIconCss))
+							$('div.scheduler-content-row[resourceid=' + resource.id + '] > div.scheduler-content-row[resourceid]').slideUp();
+							$(this).data('opener').removeClass((!!resource.openIconCss ? resource.openIconCss : options.openIconCss));
+							$(this).data('opener').addClass((!!resource.closeIconCss ? resource.closeIconCss : options.closeIconCss));
 						} else {
 							$thisContainer.children('ul').slideDown();
-							$(this).removeClass((!!resource.closeIconCss ? resource.closeIconCss : options.closeIconCss))
-							$(this).addClass((!!resource.openIconCss ? resource.openIconCss : options.openIconCss))
+							$('div.scheduler-content-row[resourceid=' + resource.id + '] > div.scheduler-content-row[resourceid]').slideDown();
+							$(this).data('opener').removeClass((!!resource.closeIconCss ? resource.closeIconCss : options.closeIconCss));
+							$(this).data('opener').addClass((!!resource.openIconCss ? resource.openIconCss : options.openIconCss));
 						}
+						$contentView.width($el.width() - $resources.width() - 1);
 					});
 					$resItem.append($opener);
 				} else {
 					var $opener = $('<i class="' + (!!resource.noChildrenIconCss ? resource.noChildrenIconCss : options.noChildrenIconCss) + '" />');
-					$resItem.append($opener);
+					$resItem.append($opener).addClass('no-children');
 				}
 				$resItem.append($('<span />').text(resourceArray[i].name).css({ paddingLeft: 5 })).append($('<hr />').css({ margin: 0 }));
-				$parent.append($resContainer);
+				$parent.append($resItemContainer);
 
 				if (resourceArray[i].children && resourceArray[i].children.length > 0) {
-					$subContainer = $('<ul class="list-unstyled" />');
-					renderChildResources($subContainer, resourceArray[i].children, levelDeep + 1);
-					$resContainer.append($subContainer);
+					var $subContainer = $('<ul class="list-unstyled" />');
+					renderChildResources($subContainer, resourceArray[i].children);
+					$resItemContainer.append($subContainer);
 				}
 			}
 		}
@@ -370,28 +328,28 @@ function Schedule($el, instanceOptions) {
 		var minutes = duration.asMinutes();
 		var totalSections = minutes / options.timeIntervalMins;
 
-		var $tmpContainer = $('<div />').css({width: minutes*options.pixelsPerMinute});
-		renderChildResourceContent(resources, 0);
-		$content.append($tmpContainer);
+		var $contentContainer = $('<div />').css({width: minutes*options.pixelsPerMinute});
+		renderChildResourceContent($contentContainer, resources);
+		$content.append($contentContainer);
 
-		function renderChildResourceContent(resourceArray, levelDeep) {
+		function renderChildResourceContent($parent, resourceArray) {
 			for (var r = 0; r < resourceArray.length; r++) {
 				var iTime = t.getStart();
-				var $newRow = $('<div />').data('resource', resourceArray[i]).attr('resourceid', resourceArray[r].id);
+				var $newRow = $('<div class="scheduler-content-row" />').data('resource', resourceArray[i]).attr('resourceid', resourceArray[r].id).css({ width: minutes * options.pixelsPerMinute });;
 				for (var i = 0; i < totalSections; i++) {
-					$newContentEl = $('<div class="schedule-content-item dropTarget" />').css({
+					$newContentEl = $('<div class="scheduler-content-item dropTarget" />').css({
 						'float': 'left',
 						position: 'relative',
 						width: (options.pixelsPerMinute * options.timeIntervalMins),
-						height: $('.schedule-resources-container li[resourceid=' + resourceArray[r].id + '] > div').innerHeight()
+						height: $('.scheduler-resources-container li[resourceid=' + resourceArray[r].id + '] > div').innerHeight()
 					}).attr('datetime', iTime.toISOString());
 					$newRow.append($newContentEl);
 					iTime.add(options.timeIntervalMins, 'm');
 				}
-				$tmpContainer.append($newRow);
+				$parent.append($newRow);
 
 				if (resourceArray[r].children && resourceArray[r].children.length > 0)
-					renderChildResourceContent(resourceArray[r].children, levelDeep + 1);
+					renderChildResourceContent($newRow, resourceArray[r].children);
 			}
 		}
 	}
@@ -402,31 +360,59 @@ function Schedule($el, instanceOptions) {
 			
 			if (events[i].start.clone().startOf('day').toISOString() != date.startOf('day').toISOString()) continue;
 
-			var $event = $('<div class="event" data-toggle="popover" data-trigger="click"><div class="schedule-event-time-container"><div class="schedule-event-time-indicator"></div></div></div>').append(events[i].name);
-			$event.draggable({
-				revert: "invalid",
-				scroll: true,
-				cursorAt: { left: 10 },
-				stop: function (event, ui) {
-					// event.toElement is the element that was responsible
-					// for triggering this event. The handle, in case of a draggable.
-					$(event.toElement).one('click', function (e) { e.stopImmediatePropagation(); });
-				}
-			});
-			$event.popover({
-				animation: false,
-				html: true,
-				placement: 'left',
-				title:  events[i].name,
-				content: events[i].description,
-				container: 'body'
-			});
 			var time = moment.roundMoment(events[i].start, 'minute', options.timeIntervalMins, 'down', true);
+
 			$nearestEl = $content.find('div[resourceid=' + events[i].resourceid + ']').children('div[datetime="' + time.toISOString() + '"]');
-			$nearestEl.append($event);
+			$nearestEl.append(createEventEl(events[i], moment.duration(events[i].end.diff(events[i].start)).asMinutes()));
 		}
+		for (i = 0; i < unscheduledEvents.length; i++) {
+
+			if ($(options.unscheduledHolder).length == 0)
+				alert('Selector for unscheduled events "' + options.unscheduledHolder + '" not found.\n\nPlease add the correct selector as option "unscheduledHolder".');
+			$(options.unscheduledHolder).append(createEventEl(unscheduledEvents[i], options.defaultEventDurationMins));
+		}
+
 	}
-	
+	function createEventEl(event, durationInMinutes) {
+		var $ret = $('<a href="javascript:void(0);" class="event" data-toggle="popover" data-trigger="focus"><div class="scheduler-event-time-container"><div class="scheduler-event-time-indicator"></div></div></a>').append(event.name).data('event', event);
+		activateEventUI($ret);
+		$ret.width(durationInMinutes * options.pixelsPerMinute);
+		return $ret;
+	}
+	function activateEventUI($event) {
+		$event.popover({
+			animation: false,
+			html: true,
+			placement: 'left',
+			title: $event.data('event').name,
+			content: $event.data('event').description,
+			container: 'body'
+		});
+		$event.draggable({
+			revert: "invalid",
+			snap: '.dropTarget',
+			scroll: true,
+			cursorAt: { left: 1, top: 1 },
+			stop: function (event, ui) {//stop the popover appearing
+				$(event.toElement).one('click', function (e) { e.stopImmediatePropagation(); });
+			}
+		});
+		$event.resizable({
+			grid: options.timeIntervalMins * options.pixelsPerMinute,
+			handles: 'e, w',
+			stop: function (event, ui) {//stop the popover appearing (although this doesn't appear to always work :/)
+				$(event.toElement).one('click', function (e) { e.stopImmediatePropagation(); });
+			}
+		});
+
+	}
+
+	//adjust various heights and thing that might change because of multiple events etc.
+	function adjustSizes() {
+		$contentView.css({'float': 'left', width: $el.width()-$resources.width(), 'overflow-x': 'auto'});
+		$('.scheduler-resource-header').height($header.innerHeight() - 1);
+
+	}
 
 	/* Event Fetching/Rendering
 	-----------------------------------------------------------------------------*/
@@ -438,13 +424,11 @@ function Schedule($el, instanceOptions) {
 		fetchAndRenderEvents();
 	}
 
-
 	function destroyEvents() {
 		freezeContentHeight();
 		currentView.destroyEvents();
 		unfreezeContentHeight();
 	}
-
 
 	function getAndRenderEvents() {
 		if (!options.lazyFetching || isFetchNeeded(currentView.start, currentView.end)) {
@@ -455,13 +439,11 @@ function Schedule($el, instanceOptions) {
 		}
 	}
 
-
 	function fetchAndRenderEvents() {
 		fetchEvents(currentView.start, currentView.end);
 		// ... will call reportEvents
 		// ... which will call renderEvents
 	}
-
 
 	// called when event data arrives
 	function reportEvents(_events) {
@@ -476,28 +458,6 @@ function Schedule($el, instanceOptions) {
 	}
 
 
-
-	// Selection ----------------------------------------------------------------------------
-	function select(start, end) {
-
-		start = t.moment(start);
-		if (end) {
-			end = t.moment(end);
-		}
-		else if (start.hasTime()) {
-			end = start.clone().add(t.defaultTimedEventDuration);
-		}
-		else {
-			end = start.clone().add(t.defaultAllDayEventDuration);
-		}
-
-		currentView.select(start, end);
-	}
-	function unselect() { // safe to be called before renderView
-		if (currentView) {
-			currentView.unselect();
-		}
-	}
 
 	// Date -----------------------------------------------------------------------------
 	function prev() {

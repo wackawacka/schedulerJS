@@ -1,0 +1,32 @@
+﻿.event {
+	/*setting left and right borders will mess up the resize grid
+	use the .event .ui-resizable-handle css below*/
+	border-bottom: 1px solid #ccc;
+	background: #fff;
+	color:#333;
+}
+.event:hover, .event:focus {
+	text-decoration:none;
+}
+	.event .scheduler-event-time-container { background: #82abff; }
+	.event .scheduler-event-time-indicator { background: #0036b7; }
+
+.scheduler-resources-container .ui-resizable-e {
+	background: #fff;
+	border: 1px solid #eee;
+}
+.scheduler-content-item .event .ui-resizable-handle {
+	background: #ccc;
+}
+.scheduler-content-item .event .ui-resizable-handle:hover {
+	background: #ff6a00;
+}
+.scheduler .scheduler-titlebar { }
+.scheduler-heading-time { border-color: #ccc; }
+.scheduler-heading-half-time { border-color: #ccc; }
+.scheduler-resource-header { border-color: #ccc; }
+.scheduler-resource-item { }
+.scheduler-content-item { border-color: #eee; }
+/*.drop-hover {background-color:#e7f1fc;}*/
+
+.popover-content h4 { margin:0px; }

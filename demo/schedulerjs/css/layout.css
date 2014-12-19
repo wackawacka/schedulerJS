@@ -1,0 +1,55 @@
+﻿.event {
+	z-index:65000;
+	cursor: pointer;
+	overflow:hidden;
+	font-size: 12px;
+	display:block;
+}
+	.event .scheduler-event-time-container {
+		height:3px;
+	}
+	.event .scheduler-event-time-indicator {
+		height:3px;
+		margin-left:20px;
+		margin-right:30px;
+	}
+
+.scheduler .scheduler-titlebar {
+	text-align:center;
+	font-size: 16px;
+}
+.scheduler-heading-time {
+	border-left:1px solid;
+	text-align:left;
+	padding-left:3px;
+	font-size: 12px;
+}
+.scheduler-heading-half-time {
+	border-left:1px solid;
+	border-bottom:1px solid;
+	height:5px;
+}
+.scheduler-resources-container ul ul {
+	padding-left:15px;
+}
+.scheduler-resource-header {
+	border-bottom:1px solid;
+}
+.scheduler-resource-item {
+	padding:5px 5px 0px 5px;
+	cursor:pointer;
+}
+	.scheduler-resource-item.no-children {
+		cursor: default;
+	}
+.scheduler-content-row {
+	display:block;
+}
+.scheduler-content-item {
+	border-left:1px solid;
+	border-bottom:1px solid;
+}
+
+.popover-content h4 {
+	margin:0px;
+}
